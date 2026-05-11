@@ -8,7 +8,7 @@ Endpoints:
   POST /api/legal/analyze           — Sync version (testing only)
   GET  /health                      — Health check
 """
-
+from utils import async_retry
 import asyncio
 import json
 import logging
@@ -234,7 +234,16 @@ Structure your response with:
 
 Format in Markdown. Be precise and cite sources."""
 
+@async_retry(max_attempts=3)
+async def call_groq_with_retry(grounded_prompt, query):
 
+    response = await call_groq_with_retry(
+    grounded_prompt,
+    query
+)
+    ai_answer = response.choices[0].message.content.strip()
+
+    return response
 async def deep_research_pipeline(query: str, language: str):
     """
     Async generator that yields SSE events through the 5-stage deep research pipeline.
