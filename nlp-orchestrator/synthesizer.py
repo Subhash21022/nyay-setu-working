@@ -99,7 +99,7 @@ Research Results:
     ]
 
     async with client.chat.with_streaming_response.completions.create(
-        model="llama3-70b-8192",
+        model=GROQ_MODEL_FAST,
         messages=messages,
         temperature=0.3,
         max_tokens=1024,

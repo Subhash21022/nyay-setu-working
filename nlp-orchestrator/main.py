@@ -28,7 +28,7 @@ from cache import (
 from config import FRONTEND_ORIGIN, GROQ_API_KEY, GROQ_MODEL_FAST, GEMINI_API_KEY, GEMINI_MODEL
 from decomposer import decompose_query
 from router import route_questions
-from research import run_parallel_research
+from research import run_parallel_research, stream_groq_chat
 from synthesizer import synthesize_answers, stream_synthesize_answers
 from validators.citation_validator import validate_citations_from_text
 from avatar_speech import get_interim_messages, convert_to_hinglish, detect_domain
@@ -224,11 +224,14 @@ async def analyze_stream(body: LegalQuery, request: Request):
     async def event_generator():
         pipeline = legal_reasoning_pipeline(body.query, body.language)
 
-        async for event in pipeline:
-            if await request.is_disconnected():
-                logger.info("[Stream] Client disconnected")
-                break
-            yield {"data": event}
+        try:
+            async for event in pipeline:
+                if await request.is_disconnected():
+                    logger.info("[Stream] Client disconnected")
+                    break
+                yield {"data": event}
+        finally:
+            await pipeline.aclose()
 
     return EventSourceResponse(event_generator())
 
@@ -456,7 +459,6 @@ async def deep_research_pipeline(query: str, language: str):
                     {"role": "user", "content": query}
                 ],
                 model=GROQ_MODEL_FAST,
-                temperature=0.2,
                 max_tokens=2048
             ):
                 yield sse_event("reasoning", {"text": token})
@@ -542,11 +544,14 @@ async def deep_research(body: LegalQuery, request: Request):
     async def event_generator():
         pipeline = deep_research_pipeline(body.query, body.language)
 
-        async for event in pipeline:
-            if await request.is_disconnected():
-                logger.info("[Deep Research] Client disconnected")
-                break
-            yield {"data": event}
+        try:
+            async for event in pipeline:
+                if await request.is_disconnected():
+                    logger.info("[Deep Research] Client disconnected")
+                    break
+                yield {"data": event}
+        finally:
+            await pipeline.aclose()
 
     return EventSourceResponse(event_generator())
 
