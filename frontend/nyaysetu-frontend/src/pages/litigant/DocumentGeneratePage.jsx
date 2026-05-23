@@ -51,8 +51,10 @@ const DocumentGeneratePage = () => {
     const [selectedType, setSelectedType] = useState(null);
     const [isGenerating, setIsGenerating] = useState(false);
     const [isDownloading, setIsDownloading] = useState(false);
+    const [isCopying, setIsCopying] = useState(false);
     const [generatedDoc, setGeneratedDoc] = useState(null);
     const [error, setError] = useState(null);
+    const [clipboardStatus, setClipboardStatus] = useState('');
     const [validationErrors, setValidationErrors] = useState({});
     const [injectionWarnings, setInjectionWarnings] = useState([]);
 
@@ -131,6 +133,7 @@ const DocumentGeneratePage = () => {
     const handleDownloadPdf = async () => {
         setIsDownloading(true);
         setError(null);
+        setClipboardStatus('');
         setValidationErrors({});
         setInjectionWarnings([]);
         try {
@@ -167,6 +170,61 @@ const DocumentGeneratePage = () => {
             handleApiError(err);
         } finally {
             setIsDownloading(false);
+        }
+    };
+
+    const handleDownloadDocx = async () => {
+        setIsDownloading(true);
+        setError(null);
+        setClipboardStatus('');
+        setValidationErrors({});
+        setInjectionWarnings([]);
+        try {
+            const payload = {
+                doc_type: selectedType,
+                fields: {
+                    petitioner_name: form.petitionerName,
+                    petitioner_address: form.petitionerAddress,
+                    respondent_name: form.respondentName,
+                    respondent_address: form.respondentAddress,
+                    case_description: form.caseDescription,
+                    incident_date: form.incidentDate,
+                    relief_sought: form.reliefSought,
+                    court_name: form.courtName,
+                    department_name: form.departmentName,
+                    pio_name: form.pioName,
+                },
+                language: 'en',
+            };
+
+            const response = await lawgpt.generateDocx(payload);
+            const blob = new Blob([response.data], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `${selectedType}_${form.petitionerName.replace(/\s+/g, '_')}.docx`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(url);
+        } catch (err) {
+            handleApiError(err);
+        } finally {
+            setIsDownloading(false);
+        }
+    };
+
+    const handleCopyToClipboard = async () => {
+        setIsCopying(true);
+        setClipboardStatus('');
+        try {
+            await navigator.clipboard.writeText(generatedDoc.content || '');
+            setClipboardStatus('Copied to clipboard');
+        } catch (copyError) {
+            setClipboardStatus('Failed to copy to clipboard');
+        } finally {
+            setIsCopying(false);
+            window.setTimeout(() => setClipboardStatus(''), 3000);
         }
     };
 
@@ -703,33 +761,90 @@ const DocumentGeneratePage = () => {
                                     {error}
                                 </div>
                             )}
+                            {clipboardStatus && (
+                                <div style={{
+                                    display: 'flex', alignItems: 'center', gap: '0.5rem',
+                                    padding: '0.75rem', background: '#ECFDF5', border: '1px solid #D1FAE5',
+                                    borderRadius: '0.5rem', color: '#065F46', fontSize: '0.85rem',
+                                    marginBottom: '1rem',
+                                }}>
+                                    <CheckCircle size={16} />
+                                    {clipboardStatus}
+                                </div>
+                            )}
 
                             {/* Actions */}
-                            <div style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem' }}>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', gap: '0.75rem' }}>
                                 <button onClick={() => { setStep(2); setGeneratedDoc(null); }} style={btnOutline}>
                                     <ArrowLeft size={16} /> Edit Fields
                                 </button>
-                                <button
-                                    onClick={handleDownloadPdf}
-                                    disabled={isDownloading}
-                                    style={{
-                                        ...btnPrimary,
-                                        background: '#059669',
-                                        opacity: isDownloading ? 0.6 : 1,
-                                        cursor: isDownloading ? 'not-allowed' : 'pointer',
-                                    }}
-                                >
-                                    {isDownloading ? (
-                                        <>
-                                            <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} />
-                                            Preparing PDF...
-                                        </>
-                                    ) : (
-                                        <>
-                                            <Download size={16} /> Download PDF
-                                        </>
-                                    )}
-                                </button>
+                                <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+                                    <button
+                                        onClick={handleCopyToClipboard}
+                                        disabled={isCopying}
+                                        style={{
+                                            ...btnOutline,
+                                            minWidth: '180px',
+                                            opacity: isCopying ? 0.6 : 1,
+                                            cursor: isCopying ? 'not-allowed' : 'pointer',
+                                        }}
+                                    >
+                                        {isCopying ? (
+                                            <>
+                                                <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} />
+                                                Copying...
+                                            </>
+                                        ) : (
+                                            <>
+                                                <ClipboardList size={16} /> Copy to clipboard
+                                            </>
+                                        )}
+                                    </button>
+                                    <button
+                                        onClick={handleDownloadDocx}
+                                        disabled={isDownloading}
+                                        style={{
+                                            ...btnPrimary,
+                                            background: '#2563EB',
+                                            opacity: isDownloading ? 0.6 : 1,
+                                            cursor: isDownloading ? 'not-allowed' : 'pointer',
+                                            minWidth: '180px',
+                                        }}
+                                    >
+                                        {isDownloading ? (
+                                            <>
+                                                <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} />
+                                                Preparing DOCX...
+                                            </>
+                                        ) : (
+                                            <>
+                                                <FileText size={16} /> Download DOCX
+                                            </>
+                                        )}
+                                    </button>
+                                    <button
+                                        onClick={handleDownloadPdf}
+                                        disabled={isDownloading}
+                                        style={{
+                                            ...btnPrimary,
+                                            background: '#059669',
+                                            opacity: isDownloading ? 0.6 : 1,
+                                            cursor: isDownloading ? 'not-allowed' : 'pointer',
+                                            minWidth: '180px',
+                                        }}
+                                    >
+                                        {isDownloading ? (
+                                            <>
+                                                <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} />
+                                                Preparing PDF...
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Download size={16} /> Download PDF
+                                            </>
+                                        )}
+                                    </button>
+                                </div>
                             </div>
                         </motion.div>
                     )}

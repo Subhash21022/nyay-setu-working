@@ -305,18 +305,21 @@ def _get_doc_llm():
         return _doc_llm, _doc_llm_label
 
     except Exception as e:
-        # Fallback dummy LLM for local QA and tests
-        class DummyLLM:
-            def invoke(self, prompt):
-                # Return a concise simulated document for quick QA
-                return {
-                    "content": f"DUMMY GENERATED DOCUMENT\n\n{prompt[:400]}"
-                }
+        fake_llm_flag = os.getenv("LAWGPT_FAKE_LLM") == "1"
+        if fake_llm_flag:
+            class DummyLLM:
+                def invoke(self, prompt):
+                    return {
+                        "content": f"DUMMY GENERATED DOCUMENT\n\n{prompt[:400]}"
+                    }
 
-        _doc_llm = DummyLLM()
-        _doc_llm_label = "dummy"
-        logger.warning("Using DummyLLM fallback because LLM integrations are not available: %s", e)
-        return _doc_llm, _doc_llm_label
+            _doc_llm = DummyLLM()
+            _doc_llm_label = "dummy"
+            logger.warning("Using DummyLLM fallback because LLM integrations are not available: %s", e)
+            return _doc_llm, _doc_llm_label
+
+        logger.error("No LLM integration available and LAWGPT_FAKE_LLM is not enabled: %s", e)
+        raise
 
 
 # ── Core generation logic ─────────────────────────────────────────────────────
