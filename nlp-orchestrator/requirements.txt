@@ -1,3 +1,14 @@
+pytest
+pytest-asyncio
+pytest-mock
+transformers
+torch
+torchvision
+datasets
+accelerate
+sentencepiece
+protobuf
+python-multipart
 aiohttp==3.13.5
 fastapi==0.136.1
 google-genai==2.3.0
