@@ -48,7 +48,6 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         String jwt = null;
         String username = null;
 
-        // Check if authHeader is not null before calling startsWith
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
             jwt = authHeader.substring(7);
             try {
@@ -65,9 +64,6 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                 );
                 return;
             }
-        } else {
-            filterChain.doFilter(request, response);
-            return;
         }
 
         if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {

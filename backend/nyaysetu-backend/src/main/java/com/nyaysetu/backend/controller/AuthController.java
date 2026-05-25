@@ -22,6 +22,7 @@ import java.util.HashMap;
 import java.util.Map;
 import jakarta.validation.Valid;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import java.util.regex.Pattern;
 
 @Tag(name = "Authentication", description = "Register, login, password reset and face login")
 @RestController
@@ -43,6 +44,11 @@ public class AuthController {
     @PostMapping("/register")
     public ResponseEntity<?> register(@Valid @RequestBody RegisterRequest req) {
         try {
+            Pattern pwPattern = Pattern.compile("^(?=.*[A-Z])(?=.*[0-9])(?=.*[@#$!%*?&]).{8,}$");
+                if (!pwPattern.matcher(req.getPassword()).matches()) {
+                    return ResponseEntity.badRequest()
+                        .body(Map.of("message", "Password must be at least 8 characters and include an uppercase letter, a number, and a special character (@#$!%*?&)."));
+                }
             authService.register(
                     req.getEmail(),
                     req.getName(),
@@ -82,7 +88,7 @@ public class AuthController {
     @SecurityRequirements
     @PostMapping("/login")
     public ResponseEntity<?> login(@Valid @RequestBody LoginRequest req) {
-        System.out.println("DEBUG: LOGIN ENDPOINT REACHED for email: " + req.getEmail());
+        log.debug("Login endpoint reached for email: {}", req.getEmail());
         try {
             authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(req.getEmail(), req.getPassword())
