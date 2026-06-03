@@ -3,6 +3,8 @@ package com.nyaysetu.backend.repository;
 import com.nyaysetu.backend.entity.CaseEntity;
 import com.nyaysetu.backend.entity.CaseStatus;
 import com.nyaysetu.backend.entity.User;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
@@ -14,6 +16,11 @@ import java.util.UUID;
 public interface CaseRepository extends JpaRepository<CaseEntity, UUID> {
     List<CaseEntity> findByJudgeId(Long judgeId);
     List<CaseEntity> findByClient(User client);
+    
+    // Paginated queries
+    Page<CaseEntity> findByClientOrRespondentEmail(User client, String respondentEmail, Pageable pageable);
+    Page<CaseEntity> findByLawyer(User lawyer, Pageable pageable);
+    Page<CaseEntity> findByAssignedJudge(String judgeName, Pageable pageable);
     
     // For auto-assignment - find cases without judge
     List<CaseEntity> findByJudgeIdIsNull();

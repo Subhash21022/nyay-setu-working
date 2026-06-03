@@ -6,7 +6,11 @@ import com.nyaysetu.backend.dto.CreateCaseRequest;
 import com.nyaysetu.backend.entity.CaseEntity;
 import com.nyaysetu.backend.entity.User;
 import com.nyaysetu.backend.repository.CaseRepository;
+import com.nyaysetu.backend.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -48,19 +52,8 @@ public class CaseManagementService {
     }
     
 
-    public List<CaseDTO> getCasesByUser(User user) {
-        // Find cases where user is the client (petitioner)
-        List<CaseEntity> casesAsClient = caseRepository.findByClient(user);
-        
-        // Find cases where user's email matches respondent email
-        List<CaseEntity> casesAsRespondent = caseRepository.findByRespondentEmail(user.getEmail());
-        
-        // Combine both lists and remove duplicates
-        Set<CaseEntity> allCases = new HashSet<>();
-        allCases.addAll(casesAsClient);
-        allCases.addAll(casesAsRespondent);
-        
-        return allCases.stream()
+    public Page<CaseDTO> getCasesByUser(User user, Pageable pageable) {
+        return caseRepository.findByClientOrRespondentEmail(user, user.getEmail(), pageable)
                 .map(caseEntity -> {
                     CaseDTO dto = convertToDTO(caseEntity);
                     // Set user role based on relationship to case
@@ -70,22 +63,17 @@ public class CaseManagementService {
                         dto.setUserRole("RESPONDENT");
                     }
                     return dto;
-                })
-                .collect(Collectors.toList());
+                });
     }
 
-    public List<CaseDTO> getCasesByLawyer(User lawyer) {
-        List<CaseEntity> cases = caseRepository.findByLawyer(lawyer);
-        return cases.stream()
-                .map(this::convertToDTO)
-                .collect(Collectors.toList());
+    public Page<CaseDTO> getCasesByLawyer(User lawyer, Pageable pageable) {
+        return caseRepository.findByLawyer(lawyer, pageable)
+                .map(this::convertToDTO);
     }
 
-    public List<CaseSummaryDto> getUserCaseSummaries(User user) {
-        List<CaseEntity> cases = caseRepository.findByClient(user);
-        return cases.stream()
-                .map(this::convertToSummaryDto)
-                .collect(Collectors.toList());
+    public Page<CaseSummaryDto> getUserCaseSummaries(User user, Pageable pageable) {
+        return caseRepository.findByClientOrRespondentEmail(user, user.getEmail(), pageable)
+                .map(this::convertToSummaryDto);
     }
 
     public CaseDTO getCaseById(UUID id) {
