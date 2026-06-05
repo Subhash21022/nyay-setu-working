@@ -8,6 +8,7 @@ import ErrorBoundary from './components/ErrorBoundary';
 import LoadingSpinner from './components/LoadingSpinner';
 import ScrollToTop from './ScrollToTop';
 import BackToTop from './components/BackToTop';
+import './styles/accessibility.css';
 import ScrollProgressBar from './components/ScrollProgressBar';
 
 // PWA Components
