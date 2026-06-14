@@ -6,6 +6,7 @@ import gsap from 'gsap';
 
 const ThemeContext = createContext(null);
 const STORAGE_KEY = 'nyaysetu_theme';
+const OVERLAY_Z_INDEX = '999999';
 
 export function ThemeProvider({ children }) {
     const [theme, setTheme] = useState(() => {
@@ -64,7 +65,7 @@ export function ThemeProvider({ children }) {
         overlay.style.width = '100vw';
         overlay.style.height = '100vh';
         overlay.style.backgroundColor = color;
-        overlay.style.zIndex = '999999';
+        overlay.style.zIndex = OVERLAY_Z_INDEX;
         overlay.style.pointerEvents = 'none';
         
         // Calculate max radius needed to cover the screen
